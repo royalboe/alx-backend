@@ -1,54 +1,47 @@
 #!/usr/bin/python3
-""" Module for LRU Caching System """
-import queue
+''' LRU Caching: Create a class LRUCache that inherits from BaseCaching
+                 and is a caching system
+'''
+
 BaseCaching = __import__('base_caching').BaseCaching
 
 
 class LRUCache(BaseCaching):
-    """ LRU Cache defines:
-      - constants of your caching system with MAX_ITEMS
-      - where your data are stored (in a dictionary)
-    """
+    ''' An LRU Cache.
+        Inherits all behaviors from BaseCaching except, upon any attempt to
+        add an entry to the cache when it is at max capacity (as specified by
+        BaseCaching.MAX_ITEMS), it discards the least recently used entry to
+        accommodate for the new one.
+        Attributes:
+          __init__ - method that initializes class instance
+          put - method that adds a key/value pair to cache
+          get - method that retrieves a key/value pair from cache '''
 
     def __init__(self):
-        """ Initialize"""
+        ''' Initialize class instance. '''
         super().__init__()
-        self.queue = {}
+        self.keys = []
 
-    def put(self, key=None, item=None):
-        """Add an item to the cache memory"""
-        if key and item:
-            if len(self.cache_data) < BaseCaching.MAX_ITEMS\
-                    and key not in self.cache_data:
-                self.queue[key] = len(self.queue)
-            elif len(self.cache_data) == BaseCaching.MAX_ITEMS\
-                    and key not in self.cache_data:
-                for k, v in self.queue.items():
-                    if v == 0:
-                        pop_key = k
-                    else:
-                        self.queue[k] = self.queue[k] - 1
-                self.cache_data.pop(pop_key)
-                self.queue.pop(pop_key)
-                print("DISCARD: {}".format(pop_key))
-                self.queue[key] = len(self.queue)
-            if key in self.cache_data:
-                old_val = self.queue.get(key)
-                for k, v in self.queue.items():
-                    if v > old_val:
-                        self.queue[k] = self.queue[k] - 1
-                self.queue[key] = len(self.queue) - 1
+    def put(self, key, item):
+        ''' Add key/value pair to cache data.
+            If cache is at max capacity (specified by BaseCaching.MAX_ITEMS),
+            discard least recently used entry in cache to accommodate new
+            entry. '''
+        if key is not None and item is not None:
             self.cache_data[key] = item
-        return None
+            if key not in self.keys:
+                self.keys.append(key)
+            else:
+                self.keys.append(self.keys.pop(self.keys.index(key)))
+            if len(self.keys) > BaseCaching.MAX_ITEMS:
+                discard = self.keys.pop(0)
+                del self.cache_data[discard]
+                print('DISCARD: {:s}'.format(discard))
 
-    def get(self, key=None):
-        """Get an item from cache memory"""
-        if key:
-            old_val = self.queue.get(key)
-            if old_val:
-                for k, v in self.queue.items():
-                    if v > old_val:
-                        self.queue[k] = self.queue[k] - 1
-                self.queue[key] = len(self.queue) - 1
-            return self.cache_data.get(key)
+    def get(self, key):
+        ''' Return value stored in `key` key of cache.
+            If key is None or does not exist in cache, return None. '''
+        if key is not None and key in self.cache_data:
+            self.keys.append(self.keys.pop(self.keys.index(key)))
+            return self.cache_data[key]
         return None

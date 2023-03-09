@@ -1,88 +1,65 @@
 #!/usr/bin/python3
-""" Module for LFU Caching System """
-import queue
+''' LFU Caching: Create a class LFUCache that inherits from BaseCaching
+                 and is a caching system '''
+
 BaseCaching = __import__('base_caching').BaseCaching
 
 
 class LFUCache(BaseCaching):
-    """ LFU Cache defines:
-      - constants of your caching system with MAX_ITEMS
-      - where your data are stored (in a dictionary)
-    """
+    ''' An LFU cache.
+        Inherits all behaviors from BaseCaching except, upon any attempt to add
+        an entry to the cache when it is at max capacity (as specified by
+        BaseCaching.MAX_ITEMS), it discards the least frequently used entry to
+        accommodate for the new one.
+        Attributes:
+          __init__ - method that initializes class instance
+          put - method that adds a key/value pair to cache
+          get - method that retrieves a key/value pair from cache '''
 
     def __init__(self):
-        """ Initialize"""
+        ''' Initialize class instance. '''
         super().__init__()
-        self.queue = {}
-        self.count = {}
+        self.keys = []
+        self.uses = {}
 
-    def put(self, key=None, item=None):
-        """Add an item to the cache memory"""
-        if key and item:
-            if len(self.cache_data) < BaseCaching.MAX_ITEMS\
-                    and key not in self.cache_data:
-                self.queue[key] = len(self.queue)
-                self.count[key] = 1
-            if len(self.cache_data) == BaseCaching.MAX_ITEMS\
-                    and key not in self.cache_data:
-                lowest_count = self.count.get(list(self.count)[-1])
-                least_used = list(self.count)[-1]
-                for k, v in self.count.items():
-                    if v < lowest_count:
-                        lowest_count = v
-                        least_used = k
-                common_freq = {k: v for k, v in self.count.items()
-                               if v == lowest_count}
-                if len(common_freq) > 1:
-                    temp = {}
-                    for k, v in common_freq.items():
-                        temp[k] = self.queue.get(k)
-                    lru = temp.get(list(temp)[-1])
-                    for k, v in self.queue.items():
-                        if k in common_freq:
-                            if v < lru:
-                                lru = v
-                    for k, v in self.queue.items():
-                        if v == lru:
-                            pop_key = k
-                        else:
-                            self.queue[k] = self.queue[k] - 1
-                    self.cache_data.pop(pop_key)
-                    self.queue.pop(pop_key)
-                    self.count.pop(pop_key)
-                    print("DISCARD: {}".format(pop_key))
-                    self.queue[key] = len(self.queue)
-                    self.count[key] = 1
-                else:
-                    self.cache_data.pop(least_used)
-                    self.count.pop(least_used)
-                    self.queue.pop(least_used)
-                    print("DISCARD: {}".format(least_used))
-                    self.count[key] = 1
-                    self.queue[key] = len(self.queue) - 1
-                    for k, v in self.queue.items():
-                        if v < len(self.queue) - 1:
-                            self.queue[k] = self.queue[k] - 1
-            if key in self.cache_data:
-                self.count[key] = self.count[key] + 1
-                old_val = self.queue.get(key)
-                if old_val is not None:
-                    for k, v in self.queue.items():
-                        if v > old_val:
-                            self.queue[k] = self.queue[k] - 1
-                self.queue[key] = len(self.queue) - 1
+    def put(self, key, item):
+        ''' Add key/value pair to cache data.
+            If cache is at max capacity (specified by BaseCaching.MAX_ITEMS),
+            discard least frequently used entry to accommodate new entry. '''
+
+        if key is not None and item is not None:
+            if (len(self.keys) == BaseCaching.MAX_ITEMS and
+                    key not in self.keys):
+                discard = self.keys.pop(self.keys.index(self.findLFU()))
+                del self.cache_data[discard]
+                del self.uses[discard]
+                print('DISCARD: {:s}'.format(discard))
             self.cache_data[key] = item
+            if key not in self.keys:
+                self.keys.append(key)
+                self.uses[key] = 0
+            else:
+                self.keys.append(self.keys.pop(self.keys.index(key)))
+                self.uses[key] += 1
+
+    def get(self, key):
+        ''' Return value stored in `key` key of cache.
+            If key is None or does not exist in cache, return None. '''
+        if key is not None and key in self.cache_data:
+            self.keys.append(self.keys.pop(self.keys.index(key)))
+            self.uses[key] += 1
+            return self.cache_data[key]
         return None
 
-    def get(self, key=None):
-        """Get an item from cache memory"""
-        if key and key in self.count:
-            self.count[key] = self.count[key] + 1
-            old_val = self.queue.get(key)
-            if old_val is not None:
-                for k, v in self.queue.items():
-                    if v > old_val:
-                        self.queue[k] = self.queue[k] - 1
-                self.queue[key] = len(self.queue) - 1
-            return self.cache_data.get(key)
-        return None
+    def findLFU(self):
+        ''' Return key of least frequently used item in cache.
+            If multiple items have the same amount of uses, return the least
+            recently used one. '''
+        items = list(self.uses.items())
+        freqs = [item[1] for item in items]
+        least = min(freqs)
+
+        lfus = [item[0] for item in items if item[1] == least]
+        for key in self.keys:
+            if key in lfus:
+                return key
